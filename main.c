@@ -15,5 +15,12 @@ Para compilar:
 */
 
 int main(int argc, char **argv ){
+  int nthreads;
+  
+  if ( argc != 1){
+		printf("%s <num_threads>\n", argv[0]);
+		exit(0);
+	}
 
+	nthreads	= atoi(argv[1]);
 }
