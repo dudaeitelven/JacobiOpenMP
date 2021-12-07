@@ -73,6 +73,26 @@ void mostrarVetor(float *vetor) {
 	printf("\n\n");
 }
 
+void copiarVetor(float *copiado, float *original)
+{
+    int i;
+ 
+    for(i=0 ; i < N ; i++)
+        copiado[i] = original[i];
+}
+
+float calcularNorma(float *vetor) {
+	int i;
+	double soma = 0;
+	
+	for(i=0; i<N; i++) {
+		soma += vetor[i] * vetor[i];
+	}
+	
+	soma = sqrt(soma);
+	
+	return soma;
+}
 
 void calcularJacobi(int ini, int contador, int nThreads, float *matrizInicial, float *vetorInicial, float *vetorCalculado, float *vetorCalculadoAnt) {
 	int 	posMatriz;
@@ -99,29 +119,15 @@ void calcularJacobi(int ini, int contador, int nThreads, float *matrizInicial, f
 			vetorCalculado[i] = (vetorInicial[i] - soma) / dp;
 		}	
 		
-		// if ((calcularNorma(vetorCalculadoAnt) - calcularNorma(vetorCalculado)) < ERRO) {
-		// 	contador = ITERACOES;
-		// }
-		// else {
-		// 	vetorCalculadoAnt = vetorCalculado;
-		// }
+		if ((calcularNorma(vetorCalculadoAnt) - calcularNorma(vetorCalculado)) < ERRO) {
+		 	contador = ITERACOES;
+		}
+		else {
+			copiarVetor(vetorCalculadoAnt,vetorCalculado);
+		}
 			
 		contador++;
 	}
-}
-
-
-float calcularNorma(float *vetor) {
-	int i;
-	double soma = 0;
-	
-	for(i=0; i<N; i++) {
-		soma += vetor[i] * vetor[i];
-	}
-	
-	soma = sqrt(soma);
-	
-	return soma;
 }	
 
 int main(int argc, char **argv ){
