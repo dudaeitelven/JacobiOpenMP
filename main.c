@@ -7,7 +7,6 @@
 
 #define ITERACOES 1000
 #define ERRO 1.0e-10
-//#define ERRO 0.000001
 #define N 4
 
 /*
@@ -108,49 +107,45 @@ void calcularJacobi(int contador, int nThreads, float *matrizInicial, float *vet
 
 	contador = 0;
 
-	//omp_set_num_threads(nThreads);
+	omp_set_num_threads(nThreads);
 
-	//#pragma omp parallel private (i, j, contador, id)
-	//{
+	#pragma omp parallel private (i, j, id, soma, posMatriz)
+	{
 		while (contador < ITERACOES) {
-			//id = omp_get_thread_num();
+			id = omp_get_thread_num();
 
-			//for(i = id+1; i < N; i+=nThreads) {
-			for(i = 0; i < N; i++) {
+			for(i = id+1; i < N; i+=nThreads) {
 				soma = 0;
 
-				//for(j = id+1; j<N; j+=nThreads) {
 				for(j = 0; j<N; j++) {
 					posMatriz = (i * N) + j;
 
-					//#pragma omp critical
-					//{
+					#pragma omp critical
+					{
 						if (i != j) {
 							soma += matrizInicial[posMatriz] * vetorX[j];
 						}
 						else {
 							dp =  matrizInicial[posMatriz];
 						}
-					//}
+					}
 				}
 				vetorXNovo[i] = (vetorInicial[i] - soma) / dp;
 			}
 
-			copiarVetor(vetorXNovo,vetorX);
-
-			// if (abs(calcularNorma(vetorX) - calcularNorma(vetorXNovo)) < ERRO) {
-			// 	iter = contador;
-			// 	contador = ITERACOES;
-			// }
-			// else {
-			// 	copiarVetor(vetorXNovo,vetorX);
-			// }
+			if (fabs(calcularNorma(vetorX)- calcularNorma(vetorXNovo)) < ERRO) {
+				iter = contador;
+				contador = ITERACOES;
+			}
+			else {
+				copiarVetor(vetorX, vetorXNovo);
+			}
 
 			contador++;
 		}
+	}
 
-		printf("Iteracoes: %d \n", iter);
-	//}
+	printf("Iteracoes: %d \n", iter);
 }
 
 double tempoCorrente(void){
