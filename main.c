@@ -120,25 +120,26 @@ void calcularJacobi(int contador, int nThreads, float *matrizInicial, float *vet
 				for(j = 0; j<N; j++) {
 					posMatriz = (i * N) + j;
 
-					#pragma omp critical
-					{
-						if (i != j) {
-							soma += matrizInicial[posMatriz] * vetorX[j];
-						}
-						else {
-							dp =  matrizInicial[posMatriz];
-						}
+					if (i != j) {
+						soma += matrizInicial[posMatriz] * vetorX[j];
 					}
+					else {
+						dp =  matrizInicial[posMatriz];
+					}
+				
 				}
 				vetorXNovo[i] = (vetorInicial[i] - soma) / dp;
 			}
 
-			if (fabs(calcularNorma(vetorX)- calcularNorma(vetorXNovo)) < ERRO) {
-				iter = contador;
-				contador = ITERACOES;
-			}
-			else {
-				copiarVetor(vetorX, vetorXNovo);
+			#pragma omp critical
+			{
+				if (fabs(calcularNorma(vetorX)- calcularNorma(vetorXNovo)) < ERRO) {
+					iter = contador;
+					contador = ITERACOES;
+				}
+				else {
+					copiarVetor(vetorX, vetorXNovo);
+				}
 			}
 
 			contador++;
