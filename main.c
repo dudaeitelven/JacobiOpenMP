@@ -6,9 +6,9 @@
 #pragma pack(1)
 
 #define ITERACOES 1000
-#define ERRO 1e-10
-#define N 5
-#define N_MAX 10
+#define ERRO 1.0e-10
+//#define ERRO 0.000001
+#define N 4
 
 /*
 Para compilar:
@@ -17,34 +17,38 @@ Para compilar:
 3 - Digitar para rodar: ./<programa> <numero_threads>
 */
 
-void gerarMatrizAleatoria(float *matrizInicial) {
-	int n;
-	int i, j;
-	int posMatriz;
+void gerarMatriz(float *matrizInicial) {
+	matrizInicial[0] = 10;
+	matrizInicial[1] = -1;
+	matrizInicial[2] =  2;
+	matrizInicial[3] =  0;
 
-	for(i=0; i<N; i++) {
-		for(j=0; j<N; j++) {
-			n = rand() % N_MAX + 1;
+	matrizInicial[4] = -1;
+	matrizInicial[5] = 11;
+	matrizInicial[6] = -1;
+	matrizInicial[7] =  3;
 
-			posMatriz = (i * N) + j;
-			matrizInicial[posMatriz] = n;
-		}
-	}
+	matrizInicial[8]  =  2;
+	matrizInicial[9]  = -1;
+	matrizInicial[10] = 10;
+	matrizInicial[11] = -1;
+
+	matrizInicial[12] =  0;
+	matrizInicial[13] =  3;
+	matrizInicial[14] = -1;
+	matrizInicial[15] =  8;
 }
 
-void gerarVetorAleatorio(float *vetor) {
-	int n;
-	int i;
-	
-	for(i=0; i<N; i++) {
-		n = rand() % N_MAX + 1;
-		vetor[i] = n;
-	}
+void gerarVetor(float *vetor) {
+	vetor[0] =   6;
+	vetor[1] =  25;
+	vetor[2] = -11;
+	vetor[3] =  15;
 }
 
 void gerarVetorZerado(float *vetor) {
 	int i;
-	
+
 	for(i=0; i<N; i++) {
 		vetor[i] = 0;
 	}
@@ -66,7 +70,7 @@ void mostrarMatriz(float *matriz) {
 
 void mostrarVetor(float *vetor) {
 	int i;
-	
+
 	for(i=0; i<N; i++) {
 		printf("%.2f ", vetor[i]);
 	}
@@ -76,7 +80,7 @@ void mostrarVetor(float *vetor) {
 void copiarVetor(float *copiado, float *original)
 {
     int i;
- 
+
     for(i=0 ; i < N ; i++)
         copiado[i] = original[i];
 }
@@ -84,51 +88,78 @@ void copiarVetor(float *copiado, float *original)
 float calcularNorma(float *vetor) {
 	int i;
 	double soma = 0;
-	
+
 	for(i=0; i<N; i++) {
 		soma += vetor[i] * vetor[i];
 	}
-	
+
 	soma = sqrt(soma);
-	
+
 	return soma;
 }
 
-void calcularJacobi(int ini, int contador, int nThreads, float *matrizInicial, float *vetorInicial, float *vetorCalculado, float *vetorCalculadoAnt) {
+void calcularJacobi(int contador, int nThreads, float *matrizInicial, float *vetorInicial, float *vetorX, float *vetorXNovo) {
 	int 	posMatriz;
 	int 	i, j;
 	float 	soma = 0;
 	float 	dp = 0;
+	int 	id;
+	int 	iter = 0;
 
 	contador = 0;
-	
-	while (contador < ITERACOES) {
-		for(i = ini; i < N; i+=nThreads) {
-			soma = 0;
 
-			for(j=0; j<N; j++) {
-				posMatriz = (i * N) + j;
+	//omp_set_num_threads(nThreads);
 
-				if (i != j) {
-					soma += matrizInicial[posMatriz] * vetorCalculado[i];	        		
+	//#pragma omp parallel private (i, j, contador, id)
+	//{
+		while (contador < ITERACOES) {
+			//id = omp_get_thread_num();
+
+			//for(i = id+1; i < N; i+=nThreads) {
+			for(i = 0; i < N; i++) {
+				soma = 0;
+
+				//for(j = id+1; j<N; j+=nThreads) {
+				for(j = 0; j<N; j++) {
+					posMatriz = (i * N) + j;
+
+					//#pragma omp critical
+					//{
+						if (i != j) {
+							soma += matrizInicial[posMatriz] * vetorX[j];
+						}
+						else {
+							dp =  matrizInicial[posMatriz];
+						}
+					//}
 				}
-				else {
-					dp =  matrizInicial[posMatriz];
-				}
+				vetorXNovo[i] = (vetorInicial[i] - soma) / dp;
 			}
-			vetorCalculado[i] = (vetorInicial[i] - soma) / dp;
-		}	
-		
-		if ((calcularNorma(vetorCalculadoAnt) - calcularNorma(vetorCalculado)) < ERRO) {
-		 	contador = ITERACOES;
+
+			copiarVetor(vetorXNovo,vetorX);
+
+			// if (abs(calcularNorma(vetorX) - calcularNorma(vetorXNovo)) < ERRO) {
+			// 	iter = contador;
+			// 	contador = ITERACOES;
+			// }
+			// else {
+			// 	copiarVetor(vetorXNovo,vetorX);
+			// }
+
+			contador++;
 		}
-		else {
-			copiarVetor(vetorCalculadoAnt,vetorCalculado);
-		}
-			
-		contador++;
-	}
-}	
+
+		printf("Iteracoes: %d \n", iter);
+	//}
+}
+
+double tempoCorrente(void){
+     struct timeval tval;
+
+     gettimeofday(&tval, NULL);
+
+     return (tval.tv_sec + tval.tv_usec/1000000.0);
+}
 
 int main(int argc, char **argv ){
 	int 	nThreads;
@@ -137,13 +168,16 @@ int main(int argc, char **argv ){
 	float 	*vetorInicial;
 	float 	*vetorCalculado;
 	float 	*vetorCalculadoAnt;
-	
+	double 	ti,tf;
+
 	if ( argc != 2){
 		printf("%s <num_threads>\n", argv[0]);
 		exit(0);
 	}
 
 	nThreads = atoi(argv[1]);
+
+	ti = tempoCorrente();
 
 	//Alocar memoria dinamicamente
 	matrizInicial 		= (float *) malloc((N * N) * sizeof(float));
@@ -154,25 +188,27 @@ int main(int argc, char **argv ){
 	//Iniciar as variaveis
 	contador = 0;
 
-	gerarMatrizAleatoria(matrizInicial);
-	gerarVetorAleatorio(vetorInicial);
+	gerarMatriz(matrizInicial);
+	gerarVetor(vetorInicial);
 	gerarVetorZerado(vetorCalculado);
 	gerarVetorZerado(vetorCalculadoAnt);
 
 	//Mostrar valores iniciais
 	printf("Matriz:\n");
 	mostrarMatriz(matrizInicial);
-	
+
 	printf("Vetor inicial:\n");
 	mostrarVetor(vetorInicial);
 
 	//Calcular Jacobi
-	int ini = 0; //Remover
-	calcularJacobi(ini, contador, nThreads, matrizInicial,vetorInicial,vetorCalculado,vetorCalculadoAnt);
+	calcularJacobi(contador, nThreads, matrizInicial,vetorInicial,vetorCalculado,vetorCalculadoAnt);
 
 	//Mostrar valores calculados
 	printf("Vetor calculado:\n");
-	mostrarVetor(vetorCalculado);
+	mostrarVetor(vetorCalculadoAnt);
+
+	tf = tempoCorrente();
+	printf("Tempo = %f\n", tf - ti );
 
 	//Limpar memoria
 	free(matrizInicial);
